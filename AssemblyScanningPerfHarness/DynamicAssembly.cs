@@ -2,6 +2,8 @@ using System.CodeDom.Compiler;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CSharp;
 using Mono.Cecil;
 
@@ -10,7 +12,7 @@ namespace AssemblyScanningPerfHarness;
 [DebuggerDisplay("Name = {Name}, DynamicName = {DynamicName}, Namespace = {Namespace}, FileName = {FileName}")]
 class DynamicAssembly
 {
-    public DynamicAssembly(string nameWithoutExtension, string? assemblyDirectory, DynamicAssembly[]? references = null, Version? version = null,
+    public DynamicAssembly(string nameWithoutExtension, string? assemblyDirectory = null, DynamicAssembly[]? references = null, Version? version = null,
         bool fakeIdentity = false, string? content = null, bool executable = false)
     {
         version ??= new Version(1, 0, 0, 0);
@@ -38,10 +40,13 @@ class DynamicAssembly
         }, FileName)
         {
             GenerateExecutable = false,
-            GenerateInMemory = false,
+            GenerateInMemory = true,
             OutputAssembly = FilePath = Path.Combine(AssemblyDirectory, FileName),
             TempFiles = new TempFileCollection(AssemblyDirectory, false)
         };
+        
+        var netstandard = Assembly.Load("netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51");
+        param.ReferencedAssemblies.Add(netstandard.Location);
 
         foreach (var reference in references)
         {
@@ -72,21 +77,22 @@ class DynamicAssembly
 
         builder.AppendLine(" }");
 
-        var result = provider.CompileAssemblyFromSource(param, builder.ToString());
+        var tempFile = Path.GetTempFileName();
+        File.WriteAllText(tempFile, builder.ToString());
+        var result = provider.CompileAssemblyFromFile(param, tempFile);
+        File.Delete(tempFile);
         ThrowIfCompilationWasNotSuccessful(result);
         provider.Dispose();
 
         if (fakeIdentity)
         {
-            using (var assemblyDefinition = AssemblyDefinition.ReadAssembly(FilePath, new ReaderParameters
-                   {
-                       ReadWrite = true
-                   }))
+            using var assemblyDefinition = AssemblyDefinition.ReadAssembly(FilePath, new ReaderParameters
             {
-                assemblyDefinition.Name.Name = nameWithoutExtension;
-                assemblyDefinition.MainModule.Name = nameWithoutExtension;
-                assemblyDefinition.Write();
-            }
+                ReadWrite = true
+            });
+            assemblyDefinition.Name.Name = nameWithoutExtension;
+            assemblyDefinition.MainModule.Name = nameWithoutExtension;
+            assemblyDefinition.Write();
         }
 
         Assembly = result.CompiledAssembly;
@@ -123,4 +129,29 @@ class DynamicAssembly
     public static implicit operator Assembly(DynamicAssembly dynamicAssembly) => dynamicAssembly.Assembly;
 
     static long dynamicAssemblyId;
+}
+
+public class DynamicAssembly2
+{
+    public DynamicAssembly2()
+    {
+        SyntaxTree syntaxTree = SyntaxFactory.ParseSyntaxTree("", null, "");
+        
+        CSharpCompilationOptions options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+            optimizationLevel: OptimizationLevel.Release);
+
+        Compilation compilation = CSharpCompilation
+            .Create(assemblyName: "InMemoryAssembly", options: options)
+            .AddReferences(_references)
+            .AddSyntaxTrees(syntaxTree);
+        
+        var stream = new MemoryStream();
+        var emitResult = compilation.Emit(stream);
+        var assembly = Assembly.Load(stream.ToArray());
+    }
+    
+    private readonly IReadOnlyCollection<MetadataReference> _references = new[] {
+        MetadataReference.CreateFromFile(typeof(Binder).GetTypeInfo().Assembly.Location),
+        MetadataReference.CreateFromFile(typeof(ValueTuple<>).GetTypeInfo().Assembly.Location)
+    };
 }
