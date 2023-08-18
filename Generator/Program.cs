@@ -2,8 +2,8 @@
 
 Console.WriteLine("Writing non handler projects");
 
-var numberOfDependencyProjects = 2;
-var numberOfHandlerProjects = 2;
+var numberOfDependencyProjects = 370;
+var numberOfHandlerProjects = 17;
 
 for (var i = 1; i < numberOfDependencyProjects; i++)
 {
@@ -16,7 +16,7 @@ for (var i = 1; i < numberOfDependencyProjects; i++)
     File.Copy("../../../../EmptyTemplate/EmptyTemplate.csproj", Path.Combine(destinationDirectory.FullName, $"Dependency{i}.csproj"), true);
     var sourceFileName = Path.Combine("../../../../EmptyTemplate", "SomeTypeTemplate.cs");
 
-    for (var j = 2; j < 3; j++)
+    for (var j = 2; j < 360; j++)
     {
         var destFileName = Path.Combine(destinationDirectory.FullName, $"SomeType{j}.cs");
         File.Copy(sourceFileName, destFileName);
@@ -44,7 +44,7 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     var messageFileName = Path.Combine("../../../../HandlerTemplate", "SomeMessageTemplate.cs");
 
     // handlers
-    for (var j = 2; j < 3; j++)
+    for (var j = 2; j < 15; j++)
     {
         var destFileName = Path.Combine(destinationDirectory.FullName, $"Handler{j}.cs");
         File.Copy(handlerFileName, destFileName);
@@ -63,7 +63,7 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     }
 
     // some types
-    for (var j = 2; j < 3; j++)
+    for (var j = 2; j < 345; j++)
     {
         var destFileName = Path.Combine(destinationDirectory.FullName, $"SomeType{j}.cs");
         File.Copy(sourceFileName, destFileName);
@@ -74,14 +74,11 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     }
     
     // dependencies
-    for (var j = 2; j < 3; j++)
+    for (int k = 0; k < 20; k++)
     {
-        for (int k = 0; k < 10; k++)
-        {
-            // dotnet add [<PROJECT>] reference <PROJECT_PATH>.
-            var random = Random.Shared.Next(1, numberOfDependencyProjects);
-            Run("dotnet", $"""add {destinationProjectPath} reference ./Dependency{random}/Dependency{random}.csproj""", workingDirectory: "../../../../");
-        }
+        // dotnet add [<PROJECT>] reference <PROJECT_PATH>.
+        var random = Random.Shared.Next(1, numberOfDependencyProjects);
+        Run("dotnet", $"""add {destinationProjectPath} reference ./Dependency{random}/Dependency{random}.csproj""", workingDirectory: "../../../../");
     }
 }
 
