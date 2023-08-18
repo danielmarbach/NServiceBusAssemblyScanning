@@ -10,6 +10,4 @@
       <PackageReference Include="NServiceBus" Version="8.1.1" />
     </ItemGroup>
 
-    <Import Project="Includes.targets" />
-
 </Project>

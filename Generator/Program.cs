@@ -40,7 +40,8 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
         Directory.Delete(handlerDirectory, true);
     }
     var destinationDirectory = Directory.CreateDirectory(handlerDirectory);
-    File.Copy("../../../../HandlerTemplate/HandlerTemplate.csproj", Path.Combine(destinationDirectory.FullName, $"Handler{i}.csproj"), true);
+    var destinationProjectPath = Path.Combine(destinationDirectory.FullName, $"Handler{i}.csproj");
+    File.Copy("../../../../HandlerTemplate/HandlerTemplate.csproj", destinationProjectPath, true);
     var sourceFileName = Path.Combine("../../../../HandlerTemplate", "SomeTypeTemplate.cs");
     var handlerFileName = Path.Combine("../../../../HandlerTemplate", "SomeHandlerTemplate.cs");
     var messageFileName = Path.Combine("../../../../HandlerTemplate", "SomeMessageTemplate.cs");
@@ -78,45 +79,27 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     // dependencies
     for (var j = 2; j < 3; j++)
     {
-        var destFileName = Path.Combine(destinationDirectory.FullName, "Includes.targets");
-        var stringBuilder = new StringBuilder();
-        stringBuilder.AppendLine("<Project>");
-        stringBuilder.AppendLine("    <ItemGroup>");
-
         for (int k = 0; k < 10; k++)
         {
+            // dotnet add [<PROJECT>] reference <PROJECT_PATH>.
             var random = Random.Shared.Next(1, numberOfDependencyProjects);
-            stringBuilder.AppendLine(
-                $"""        <ProjectReference Include="..\Dependency{random}\Dependency{random}.csproj" />""");
+            Run("dotnet", $"""add {destinationProjectPath} reference ./Dependency{random}/Dependency{random}.csproj""", workingDirectory: "../../../../");
         }
-        
-        stringBuilder.AppendLine("    </ItemGroup>");
-        stringBuilder.AppendLine("</Project>");
-        File.WriteAllText(destFileName, stringBuilder.ToString());
     }
 }
 
-var perfHarnessIncludes = Path.Combine("../../../../AssemblyScanningPerfHarness", "Includes.targets");
-var perfHarnessIncludesBuilder = new StringBuilder();
-perfHarnessIncludesBuilder.AppendLine("<Project>");
-perfHarnessIncludesBuilder.AppendLine("    <ItemGroup>");
+var perfHarnessIncludes = Path.GetFullPath("../../../../AssemblyScanningPerfHarness");
 
 for (int k = 1; k < numberOfDependencyProjects; k++)
 {
-    perfHarnessIncludesBuilder.AppendLine(
-        $"""        <ProjectReference Include="..\Dependency{k}\Dependency{k}.csproj" />""");
+    Run("dotnet", $"""add {perfHarnessIncludes} reference ./Dependency{k}/Dependency{k}.csproj""", workingDirectory: "../../../../");
 }
 
 for (int k = 1; k < numberOfHandlerProjects; k++)
 {
-    perfHarnessIncludesBuilder.AppendLine(
-        $"""        <ProjectReference Include="..\Handler{k}\Handler{k}.csproj" />""");
+    Run("dotnet", $"""add {perfHarnessIncludes} reference ./Handler{k}/Handler{k}.csproj""", workingDirectory: "../../../../");
 }
         
-perfHarnessIncludesBuilder.AppendLine("    </ItemGroup>");
-perfHarnessIncludesBuilder.AppendLine("</Project>");
-File.WriteAllText(perfHarnessIncludes, perfHarnessIncludesBuilder.ToString());
-
 Run("dotnet", "new sln -n Temp --force", workingDirectory: "../../../../");
 for (int k = 1; k < numberOfDependencyProjects; k++)
 {
