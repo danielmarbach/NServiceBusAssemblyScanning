@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Generated stuff
+
+Harness.sln
+Handler*/**
+Dependency*/**
