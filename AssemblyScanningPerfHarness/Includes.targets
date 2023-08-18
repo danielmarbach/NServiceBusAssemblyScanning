@@ -1,0 +1,6 @@
+<Project>
+    <ItemGroup>
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Handler1\Handler1.csproj" />
+    </ItemGroup>
+</Project>

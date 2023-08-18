@@ -1,0 +1,14 @@
+<Project>
+    <ItemGroup>
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+        <ProjectReference Include="..\Dependency1\Dependency1.csproj" />
+    </ItemGroup>
+</Project>

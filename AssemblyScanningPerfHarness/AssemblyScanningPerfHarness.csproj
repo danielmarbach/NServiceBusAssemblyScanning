@@ -8,11 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" />
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.6.0" />
-      <PackageReference Include="Mono.Cecil" Version="0.11.2" />
       <PackageReference Include="NServiceBus" Version="8.1.1" />
-      <PackageReference Include="System.CodeDom" Version="7.0.0" />
     </ItemGroup>
+
+    <Import Project="Includes.targets" />
 
 </Project>
