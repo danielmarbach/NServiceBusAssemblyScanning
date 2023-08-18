@@ -1,7 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Text;
-using static SimpleExec.Command;
+﻿using static SimpleExec.Command;
 
 Console.WriteLine("Writing non handler projects");
 
@@ -24,7 +21,7 @@ for (var i = 1; i < numberOfDependencyProjects; i++)
         var destFileName = Path.Combine(destinationDirectory.FullName, $"SomeType{j}.cs");
         File.Copy(sourceFileName, destFileName);
         var text = File.ReadAllText(destFileName);
-        text = text.Replace("NamespaceTemplate", $"Handler{i}");
+        text = text.Replace("NamespaceTemplate", $"Dependency{i}");
         text = text.Replace("SomeTypeTemplate", $"SomeType{j}");
         File.WriteAllText(destFileName, text);
     }
@@ -88,7 +85,7 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     }
 }
 
-var perfHarnessIncludes = Path.GetFullPath("../../../../AssemblyScanningPerfHarness");
+var perfHarnessIncludes = Path.GetFullPath("../../../../AssemblyScanningPerfHarness/AssemblyScanningPerfHarness.csproj");
 
 for (int k = 1; k < numberOfDependencyProjects; k++)
 {
@@ -100,13 +97,14 @@ for (int k = 1; k < numberOfHandlerProjects; k++)
     Run("dotnet", $"""add {perfHarnessIncludes} reference ./Handler{k}/Handler{k}.csproj""", workingDirectory: "../../../../");
 }
         
-Run("dotnet", "new sln -n Temp --force", workingDirectory: "../../../../");
+Run("dotnet", "new sln -n Harness --force", workingDirectory: "../../../../");
 for (int k = 1; k < numberOfDependencyProjects; k++)
 {
-    Run("dotnet", $"sln Temp.sln add Dependency{k}/Dependency{k}.csproj", workingDirectory: "../../../../");
+    Run("dotnet", $"sln Harness.sln add Dependency{k}/Dependency{k}.csproj", workingDirectory: "../../../../");
 }
 for (int k = 1; k < numberOfHandlerProjects; k++)
 {
-    Run("dotnet", $"sln Temp.sln add Handler{k}/Handler{k}.csproj", workingDirectory: "../../../../");
+    Run("dotnet", $"sln Harness.sln add Handler{k}/Handler{k}.csproj", workingDirectory: "../../../../");
 }
-Run("dotnet", "build Temp.sln -c Release", workingDirectory: "../../../../");
+Run("dotnet", $"sln Harness.sln add {perfHarnessIncludes}", workingDirectory: "../../../../");
+Run("dotnet", "build Harness.sln -c Release", workingDirectory: "../../../../");
