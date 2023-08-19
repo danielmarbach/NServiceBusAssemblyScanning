@@ -22,7 +22,7 @@ await Parallel.ForEachAsync(Enumerable.Range(1, numberOfDependencyProjects), asy
     {
         var destFileName = Path.Combine(destinationDirectory.FullName, $"SomeType{j}.cs");
         File.Copy(sourceFileName, destFileName);
-        var text = File.ReadAllText(destFileName);
+        var text = await File.ReadAllTextAsync(destFileName, cancellationToken);
         text = text.Replace("NamespaceTemplate", $"Dependency{i}");
         text = text.Replace("SomeTypeTemplate", $"SomeType{j}");
         await File.WriteAllTextAsync(destFileName, text, cancellationToken);
