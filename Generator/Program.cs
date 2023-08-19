@@ -5,15 +5,17 @@ Console.WriteLine("Writing non handler projects");
 var numberOfDependencyProjects = 370;
 var numberOfHandlerProjects = 17;
 
-for (var i = 1; i < numberOfDependencyProjects; i++)
+await Parallel.ForEachAsync(Enumerable.Range(1, numberOfDependencyProjects), async (i, cancellationToken) =>
 {
     var dependencyDirectory = $"../../../../Dependency{i}";
     if (Directory.Exists(dependencyDirectory))
     {
         Directory.Delete(dependencyDirectory, true);
     }
+
     var destinationDirectory = Directory.CreateDirectory(dependencyDirectory);
-    File.Copy("../../../../EmptyTemplate/EmptyTemplate.csproj", Path.Combine(destinationDirectory.FullName, $"Dependency{i}.csproj"), true);
+    File.Copy("../../../../EmptyTemplate/EmptyTemplate.csproj",
+        Path.Combine(destinationDirectory.FullName, $"Dependency{i}.csproj"), true);
     var sourceFileName = Path.Combine("../../../../EmptyTemplate", "SomeTypeTemplate.cs");
 
     for (var j = 2; j < 360; j++)
@@ -23,13 +25,13 @@ for (var i = 1; i < numberOfDependencyProjects; i++)
         var text = File.ReadAllText(destFileName);
         text = text.Replace("NamespaceTemplate", $"Dependency{i}");
         text = text.Replace("SomeTypeTemplate", $"SomeType{j}");
-        File.WriteAllText(destFileName, text);
+        await File.WriteAllTextAsync(destFileName, text, cancellationToken);
     }
-}
+});
 
 Console.WriteLine("Writing handler projects");
 
-for (var i = 1; i < numberOfHandlerProjects; i++)
+await Parallel.ForEachAsync(Enumerable.Range(1, numberOfHandlerProjects), async (i, cancellationToken) =>
 {
     var handlerDirectory = $"../../../../Handler{i}";
     if (Directory.Exists(handlerDirectory))
@@ -48,18 +50,18 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     {
         var destFileName = Path.Combine(destinationDirectory.FullName, $"Handler{j}.cs");
         File.Copy(handlerFileName, destFileName);
-        var text = File.ReadAllText(destFileName);
+        var text = await File.ReadAllTextAsync(destFileName, cancellationToken);
         text = text.Replace("NamespaceTemplate", $"Handler{i}");
         text = text.Replace("SomeHandlerTemplate", $"Handler{j}");
         text = text.Replace("SomeMessageTemplate", $"Message{j}");
-        File.WriteAllText(destFileName, text);
+        await File.WriteAllTextAsync(destFileName, text, cancellationToken);
         
         destFileName = Path.Combine(destinationDirectory.FullName, $"Message{j}.cs");
         File.Copy(messageFileName, destFileName);
         text = File.ReadAllText(destFileName);
         text = text.Replace("NamespaceTemplate", $"Handler{i}");
         text = text.Replace("SomeMessageTemplate", $"Message{j}");
-        File.WriteAllText(destFileName, text);
+        await File.WriteAllTextAsync(destFileName, text, cancellationToken);
     }
 
     // some types
@@ -67,41 +69,39 @@ for (var i = 1; i < numberOfHandlerProjects; i++)
     {
         var destFileName = Path.Combine(destinationDirectory.FullName, $"SomeType{j}.cs");
         File.Copy(sourceFileName, destFileName);
-        var text = File.ReadAllText(destFileName);
+        var text = await File.ReadAllTextAsync(destFileName, cancellationToken);;
         text = text.Replace("NamespaceTemplate", $"Handler{i}");
         text = text.Replace("SomeTypeTemplate", $"SomeType{j}");
-        File.WriteAllText(destFileName, text);
+        await File.WriteAllTextAsync(destFileName, text, cancellationToken);
     }
     
     // dependencies
-    for (int k = 0; k < 20; k++)
+    var references = new string[20];
+    for (int k = 0; k < references.Length; k++)
     {
         // dotnet add [<PROJECT>] reference <PROJECT_PATH>.
         var random = Random.Shared.Next(1, numberOfDependencyProjects);
-        Run("dotnet", $"""add {destinationProjectPath} reference ./Dependency{random}/Dependency{random}.csproj""", workingDirectory: "../../../../");
+        references[k] = $"./Dependency{random}/Dependency{random}.csproj";
     }
-}
+    await RunAsync("dotnet", $"""add {destinationProjectPath} reference {string.Join(" ", references)}""", workingDirectory: "../../../../");
+});
 
 var perfHarnessIncludes = Path.GetFullPath("../../../../AssemblyScanningPerfHarness/AssemblyScanningPerfHarness.csproj");
 
+var projects = new string[numberOfDependencyProjects + numberOfHandlerProjects - 2];
+
 for (int k = 1; k < numberOfDependencyProjects; k++)
 {
-    Run("dotnet", $"""add {perfHarnessIncludes} reference ./Dependency{k}/Dependency{k}.csproj""", workingDirectory: "../../../../");
+    projects[k] = $"./Dependency{k}/Dependency{k}.csproj";
 }
 
 for (int k = 1; k < numberOfHandlerProjects; k++)
 {
-    Run("dotnet", $"""add {perfHarnessIncludes} reference ./Handler{k}/Handler{k}.csproj""", workingDirectory: "../../../../");
+    projects[k] = $"./Handler{k}/Handler{k}.csproj";
 }
-        
-Run("dotnet", "new sln -n Harness --force", workingDirectory: "../../../../");
-for (int k = 1; k < numberOfDependencyProjects; k++)
-{
-    Run("dotnet", $"sln Harness.sln add Dependency{k}/Dependency{k}.csproj", workingDirectory: "../../../../");
-}
-for (int k = 1; k < numberOfHandlerProjects; k++)
-{
-    Run("dotnet", $"sln Harness.sln add Handler{k}/Handler{k}.csproj", workingDirectory: "../../../../");
-}
-Run("dotnet", $"sln Harness.sln add {perfHarnessIncludes}", workingDirectory: "../../../../");
-Run("dotnet", "build Harness.sln -c Release", workingDirectory: "../../../../");
+
+await RunAsync("dotnet", $"""add {perfHarnessIncludes} reference {string.Join(" ", projects)}""", workingDirectory: "../../../../");
+await RunAsync("dotnet", "new sln -n Harness --force", workingDirectory: "../../../../");
+await RunAsync("dotnet", $"sln Harness.sln add {string.Join(" ", projects)}", workingDirectory: "../../../../");
+await RunAsync("dotnet", $"sln Harness.sln add {perfHarnessIncludes}", workingDirectory: "../../../../");
+await RunAsync("dotnet", "build Harness.sln -c Release", workingDirectory: "../../../../");
